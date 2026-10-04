@@ -1,0 +1,20 @@
+{
+  "name": "skilldesk",
+  "version": "1.0.0",
+  "description": "SkillDesk - Modern MERN Freelancing Marketplace with GitHub Deliverables & ImageKit CDN",
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "start": "cd server && npm start",
+    "seed": "node -e \"fetch('http://localhost:5000/api/seed', { method: 'POST' }).then(r => r.json()).then(d => console.log('Seed response:', d))\""
+  },
+  "keywords": [
+    "mern",
+    "freelance",
+    "github",
+    "imagekit",
+    "skilldesk"
+  ],
+  "author": "",
+  "license": "ISC"
+}
