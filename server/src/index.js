@@ -14,20 +14,12 @@ const messageRoutes = require('./routes/messageRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  process.env.CLIENT_URL,
-  'https://skilldesk1.vercel.app',
-].filter(Boolean);
 
 // Socket.io initialization
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: '*',
     methods: ['GET', 'POST'],
-    credentials: true,
   },
 });
 
@@ -57,15 +49,9 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true); // Permissive for now; tighten later if needed
-  },
-  credentials: true,
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -84,6 +70,19 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/bids', bidRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/messages', messageRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    name: 'SkillDesk API',
+    endpoints: {
+      health: '/api/health',
+      projects: '/api/projects',
+      auth: '/api/auth'
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

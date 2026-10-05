@@ -1,13 +1,17 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const primaryUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/skilldesk';
+  const primaryUri = process.env.MONGODB_URI || process.env.ATLAS_MONGODB_URI || 'mongodb://127.0.0.1:27017/skilldesk';
   const fallbackUri = 'mongodb://127.0.0.1:27017/skilldesk';
 
   try {
-    console.log(`Attempting to connect to MongoDB: ${primaryUri.includes('@') ? primaryUri.split('@')[1] : primaryUri}`);
+    const maskedUri = primaryUri.includes('@') 
+      ? `mongodb+srv://***@${primaryUri.split('@')[1]}` 
+      : primaryUri;
+    console.log(` Attempting to connect to MongoDB: ${maskedUri}`);
+
     const conn = await mongoose.connect(primaryUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
     });
     console.log(` MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
   } catch (error) {
@@ -19,7 +23,7 @@ const connectDB = async () => {
       console.log(` Connected to fallback Local MongoDB: ${fallbackConn.connection.host}/${fallbackConn.connection.name}`);
     } catch (fallbackError) {
       console.error(` All MongoDB connections failed: ${fallbackError.message}`);
-      process.exit(1);
+      console.warn(` Server will continue running to handle health checks and retry DB operations.`);
     }
   }
 };

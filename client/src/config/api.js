@@ -1,9 +1,13 @@
 // Central API configuration for SkillDesk
-// In development, Vite proxy handles /api → localhost:5000
-// In production, we point directly to the Render backend
+// In development (localhost), Vite proxy handles /api → localhost:5000
+// In production (Vercel), we point directly to the Render backend
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || '';
+const isProduction = typeof window !== 'undefined' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1';
+
+const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? 'https://skilldesk1.onrender.com' : '');
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (isProduction ? 'https://skilldesk1.onrender.com' : 'http://localhost:5000');
 
 /**
  * Returns the full API URL for a given path.
@@ -18,5 +22,5 @@ export function apiUrl(path) {
  * Returns the Socket.IO server URL.
  */
 export function getSocketUrl() {
-  return SOCKET_URL || window.location.origin;
+  return SOCKET_URL;
 }
