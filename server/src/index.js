@@ -89,6 +89,9 @@ app.get('/api/health', (req, res) => {
   const mongoose = require('mongoose');
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
   const stateCode = mongoose.connection.readyState;
+  const rawUri = process.env.MONGODB_URI || process.env.ATLAS_MONGODB_URI || '';
+  const masked = rawUri ? rawUri.replace(/:([^:@]+)@/, ':****@') : 'NONE (using default 127.0.0.1)';
+
   res.json({
     status: 'online',
     platform: 'SkillDesk MERN API with Socket.IO Chat',
@@ -99,9 +102,41 @@ app.get('/api/health', (req, res) => {
       readyState: stateCode,
       host: mongoose.connection.host || null,
       name: mongoose.connection.name || null,
+      configuredUri: masked,
+      hasMongodbUri: Boolean(process.env.MONGODB_URI),
+      hasAtlasUri: Boolean(process.env.ATLAS_MONGODB_URI),
     },
     imagekitConfigured: Boolean(process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY),
   });
+});
+
+// Diagnostic DB reconnect endpoint
+app.get('/api/db-reconnect', async (req, res) => {
+  const mongoose = require('mongoose');
+  const uri = process.env.MONGODB_URI || process.env.ATLAS_MONGODB_URI;
+  if (!uri) {
+    return res.status(500).json({ success: false, error: 'No MONGODB_URI or ATLAS_MONGODB_URI found in process.env' });
+  }
+
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
+    res.json({
+      success: true,
+      message: 'Connected successfully to MongoDB',
+      host: conn.connection.host,
+      name: conn.connection.name
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      errorName: err.name,
+      errorMessage: err.message,
+      maskedUri: uri.replace(/:([^:@]+)@/, ':****@')
+    });
+  }
 });
 
 // Global 404 handler for API routes
