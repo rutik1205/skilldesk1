@@ -64,7 +64,12 @@ router.get('/', optionalAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Fetch projects error:', error);
-    res.status(500).json({ success: false, message: 'Server error while fetching projects' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error while fetching projects',
+      error: error.message,
+      dbReadyState: require('mongoose').connection.readyState
+    });
   }
 });
 

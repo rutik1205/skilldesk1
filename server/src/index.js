@@ -86,11 +86,20 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const stateCode = mongoose.connection.readyState;
   res.json({
     status: 'online',
     platform: 'SkillDesk MERN API with Socket.IO Chat',
     timestamp: new Date(),
     uptime: process.uptime(),
+    database: {
+      state: states[stateCode] || 'unknown',
+      readyState: stateCode,
+      host: mongoose.connection.host || null,
+      name: mongoose.connection.name || null,
+    },
     imagekitConfigured: Boolean(process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY),
   });
 });
