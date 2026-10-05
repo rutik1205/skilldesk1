@@ -54,13 +54,33 @@ router.get('/', optionalAuth, async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
 
+    const requesterId = req.user?._id ? req.user._id.toString() : null;
+    const isAdmin = req.user?.role === 'admin';
+
+    const sanitizedProjects = projects.map((p) => {
+      const pObj = p.toObject();
+      const clientId = p.client?._id ? p.client._id.toString() : p.client?.toString();
+      const freelancerId = p.selectedFreelancer?._id ? p.selectedFreelancer._id.toString() : p.selectedFreelancer?.toString();
+      const isClient = requesterId && clientId && requesterId === clientId;
+      const isFreelancer = requesterId && freelancerId && requesterId === freelancerId;
+
+      if (!isClient && !isFreelancer && !isAdmin && pObj.submission) {
+        pObj.submission = {
+          hasSubmission: Boolean(pObj.submission.githubUrl || pObj.submission.submittedAt),
+          submittedAt: pObj.submission.submittedAt,
+          isRestricted: true,
+        };
+      }
+      return pObj;
+    });
+
     res.json({
       success: true,
-      count: projects.length,
+      count: sanitizedProjects.length,
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
-      projects,
+      projects: sanitizedProjects,
     });
   } catch (error) {
     console.error('Fetch projects error:', error);
@@ -124,9 +144,26 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
+    const projectObj = project.toObject();
+    const requesterId = req.user?._id ? req.user._id.toString() : null;
+    const clientId = project.client?._id ? project.client._id.toString() : project.client?.toString();
+    const freelancerId = project.selectedFreelancer?._id ? project.selectedFreelancer._id.toString() : project.selectedFreelancer?.toString();
+    const isClient = requesterId && clientId && requesterId === clientId;
+    const isFreelancer = requesterId && freelancerId && requesterId === freelancerId;
+    const isAdmin = req.user?.role === 'admin';
+
+    if (!isClient && !isFreelancer && !isAdmin && projectObj.submission) {
+      const hasSubmission = Boolean(projectObj.submission.githubUrl || projectObj.submission.submittedAt);
+      projectObj.submission = {
+        hasSubmission,
+        submittedAt: projectObj.submission.submittedAt,
+        isRestricted: true,
+      };
+    }
+
     res.json({
       success: true,
-      project,
+      project: projectObj,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error retrieving project details' });

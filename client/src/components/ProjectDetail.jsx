@@ -17,6 +17,9 @@ import {
   Award,
   IndianRupee,
   MessageSquare,
+  Lock,
+  Shield,
+  LogIn,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
@@ -62,7 +65,8 @@ export default function ProjectDetail({
     setLoading(true);
     setError('');
     try {
-      const pRes = await fetch(apiUrl(`/api/projects/${projectId}`));
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const pRes = await fetch(apiUrl(`/api/projects/${projectId}`), { headers: authHeaders });
       const pData = await pRes.json();
       if (!pRes.ok || !pData.success) {
         throw new Error(pData.message || 'Failed to load project');
@@ -77,12 +81,12 @@ export default function ProjectDetail({
       // Load bids with multi-route fallback
       let loadedBids = [];
       try {
-        const bRes = await fetch(apiUrl(`/api/bids/projects/${projectId}/bids`));
+        const bRes = await fetch(apiUrl(`/api/bids/projects/${projectId}/bids`), { headers: authHeaders });
         const bData = await bRes.json();
         if (bData.success && Array.isArray(bData.bids)) {
           loadedBids = bData.bids;
         } else {
-          const altRes = await fetch(apiUrl(`/api/projects/${projectId}/bids`));
+          const altRes = await fetch(apiUrl(`/api/projects/${projectId}/bids`), { headers: authHeaders });
           const altData = await altRes.json();
           if (altData.success && Array.isArray(altData.bids)) {
             loadedBids = altData.bids;
@@ -102,7 +106,7 @@ export default function ProjectDetail({
 
   useEffect(() => {
     loadProjectData();
-  }, [projectId]);
+  }, [projectId, token]);
 
   // Reset form states when user changes or logs out
   useEffect(() => {
@@ -126,6 +130,9 @@ export default function ProjectDetail({
   );
   const isAwardedFreelancer = Boolean(
     user && project?.selectedFreelancer && String(user._id) === String(project.selectedFreelancer._id || project.selectedFreelancer)
+  );
+  const canViewDeliverables = Boolean(
+    isOwner || isAwardedFreelancer || (user && user.role === 'admin')
   );
   const myExistingBid = bids.find(
     (b) => user && String(b.freelancer?._id || b.freelancer) === String(user._id)
@@ -564,111 +571,188 @@ export default function ProjectDetail({
 
               {/* DELIVERABLE WORKFLOW SECTION */}
               {/* 1. If Deliverable is submitted (In Review or Completed) */}
-              {project.submission?.githubUrl && (
-                <div className="github-delivery-box">
-                  <div className="delivery-box-header">
-                    <div className="delivery-title">
-                      <GitBranch size={22} color="#0f172a" />
-                      <span>Project Deliverable (GitHub Repository)</span>
+              {(project.submission?.githubUrl || project.submission?.hasSubmission || project.submission?.isRestricted || project.status === 'submitted' || project.status === 'completed') && (
+                canViewDeliverables && project.submission?.githubUrl ? (
+                  <div className="github-delivery-box">
+                    <div className="delivery-box-header">
+                      <div className="delivery-title">
+                        <GitBranch size={22} color="#0f172a" />
+                        <span>Project Deliverable (GitHub Repository)</span>
+                      </div>
+                      {project.status === 'completed' ? (
+                        <span className="badge badge-completed">
+                          <CheckCircle2 size={13} /> Verified & Completed
+                        </span>
+                      ) : (
+                        <span className="badge badge-submitted">Awaiting Client Approval</span>
+                      )}
                     </div>
-                    {project.status === 'completed' ? (
-                      <span className="badge badge-completed">
-                        <CheckCircle2 size={13} /> Verified & Completed
-                      </span>
-                    ) : (
-                      <span className="badge badge-submitted">Awaiting Client Approval</span>
-                    )}
-                  </div>
 
-                  <div className="repo-link-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-                      <GitBranch size={18} color="#24292f" />
-                      <span className="repo-url-text">{project.submission.githubUrl}</span>
-                    </div>
-                    <a
-                      href={project.submission.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-github btn-sm"
-                    >
-                      <ExternalLink size={14} /> View on GitHub
-                    </a>
-                  </div>
-
-                  {project.submission.liveDemoUrl && (
-                    <div style={{ fontSize: '0.88rem', margin: '0.5rem 0', color: '#334155' }}>
-                      <strong>Live Demo:</strong>{' '}
+                    <div className="repo-link-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                        <GitBranch size={18} color="#24292f" />
+                        <span className="repo-url-text">{project.submission.githubUrl}</span>
+                      </div>
                       <a
-                        href={project.submission.liveDemoUrl}
+                        href={project.submission.githubUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                        className="btn btn-github btn-sm"
                       >
-                        {project.submission.liveDemoUrl}
+                        <ExternalLink size={14} /> View on GitHub
                       </a>
                     </div>
-                  )}
 
-                  {project.submission.notes && (
-                    <div
-                      style={{
-                        background: '#ffffff',
-                        padding: '0.85rem 1rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '0.88rem',
-                        color: 'var(--text-secondary)',
-                        marginTop: '0.75rem',
-                      }}
-                    >
-                      <strong>Developer Notes:</strong> {project.submission.notes}
-                    </div>
-                  )}
-
-                  {/* Client Action: Approve & Review Deliverable */}
-                  {isOwner && project.status === 'submitted' && (
-                    <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
-                      <button
-                        className="btn btn-success"
-                        onClick={() => setShowApproveModal(true)}
-                      >
-                        <CheckCircle2 size={16} /> Approve GitHub Code & Complete Project
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Display Review if completed */}
-                  {project.review?.rating && (
-                    <div
-                      style={{
-                        marginTop: '1.25rem',
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                        <div style={{ display: 'flex' }}>
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={16}
-                              fill={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
-                              color={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
-                            />
-                          ))}
-                        </div>
-                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#166534' }}>
-                          Client Feedback & Review
-                        </span>
+                    {project.submission.liveDemoUrl && (
+                      <div style={{ fontSize: '0.88rem', margin: '0.5rem 0', color: '#334155' }}>
+                        <strong>Live Demo:</strong>{' '}
+                        <a
+                          href={project.submission.liveDemoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                        >
+                          {project.submission.liveDemoUrl}
+                        </a>
                       </div>
-                      <p style={{ fontSize: '0.88rem', color: '#166534', fontStyle: 'italic' }}>
-                        "{project.review.feedback}"
-                      </p>
+                    )}
+
+                    {project.submission.notes && (
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          padding: '0.85rem 1rem',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '0.88rem',
+                          color: 'var(--text-secondary)',
+                          marginTop: '0.75rem',
+                        }}
+                      >
+                        <strong>Developer Notes:</strong> {project.submission.notes}
+                      </div>
+                    )}
+
+                    {/* Client Action: Approve & Review Deliverable */}
+                    {isOwner && project.status === 'submitted' && (
+                      <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
+                        <button
+                          className="btn btn-success"
+                          onClick={() => setShowApproveModal(true)}
+                        >
+                          <CheckCircle2 size={16} /> Approve GitHub Code & Complete Project
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Display Review if completed */}
+                    {project.review?.rating && (
+                      <div
+                        style={{
+                          marginTop: '1.25rem',
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '1rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                          <div style={{ display: 'flex' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={16}
+                                fill={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
+                                color={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
+                              />
+                            ))}
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#166534' }}>
+                            Client Feedback & Review
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.88rem', color: '#166534', fontStyle: 'italic' }}>
+                          "{project.review.feedback}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="github-delivery-box" style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
+                    <div className="delivery-box-header">
+                      <div className="delivery-title" style={{ color: '#334155' }}>
+                        <Lock size={20} color="#64748b" />
+                        <span>Project Deliverable (Protected)</span>
+                      </div>
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Shield size={12} /> Confidential
+                      </span>
                     </div>
-                  )}
-                </div>
+
+                    <div
+                      style={{
+                        padding: '1.1rem',
+                        background: '#ffffff',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px dashed #cbd5e1',
+                        marginTop: '0.65rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.75rem',
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569', lineHeight: 1.5 }}>
+                        {user
+                          ? 'This project deliverable (GitHub repository & live demo) is private and accessible only by the client and the assigned freelancer.'
+                          : 'This project deliverable (GitHub repository & live demo) is private. Please sign in as the project client or assigned freelancer to view the code.'}
+                      </p>
+                      {!user && (
+                        <div>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                            onClick={() => onOpenAuth('login')}
+                          >
+                            <LogIn size={14} /> Sign In to Access Deliverable
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Display Review publicly if completed so freelancer rating is visible */}
+                    {project.review?.rating && (
+                      <div
+                        style={{
+                          marginTop: '1.25rem',
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '1rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                          <div style={{ display: 'flex' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={16}
+                                fill={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
+                                color={i < project.review.rating ? '#f59e0b' : '#cbd5e1'}
+                              />
+                            ))}
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#166534' }}>
+                            Client Feedback & Review
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.88rem', color: '#166534', fontStyle: 'italic' }}>
+                          "{project.review.feedback}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
               )}
 
               {/* 2. If Project is In Progress & User is the Chosen Freelancer -> Deliverable Submission Form */}
