@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { apiUrl } from '../config/api';
 import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,7 +30,7 @@ export default function ImageKitUpload({
       formData.append('file', file);
       formData.append('folder', folder);
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

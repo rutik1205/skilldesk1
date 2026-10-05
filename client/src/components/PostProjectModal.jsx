@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../config/api';
 import { X, PlusCircle, AlertCircle, IndianRupee, Sparkles, UserX, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
@@ -85,7 +86,7 @@ export default function PostProjectModal({ isOpen, onClose, onProjectCreated, on
 
       const attachments = attachment ? [attachment] : [];
 
-      const res = await fetch('/api/projects', {
+      const res = await fetch(apiUrl('/api/projects'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

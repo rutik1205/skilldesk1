@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 import {
   ArrowLeft,
   Calendar,
@@ -61,7 +62,7 @@ export default function ProjectDetail({
     setLoading(true);
     setError('');
     try {
-      const pRes = await fetch(`/api/projects/${projectId}`);
+      const pRes = await fetch(apiUrl(`/api/projects/${projectId}`));
       const pData = await pRes.json();
       if (!pRes.ok || !pData.success) {
         throw new Error(pData.message || 'Failed to load project');
@@ -76,12 +77,12 @@ export default function ProjectDetail({
       // Load bids with multi-route fallback
       let loadedBids = [];
       try {
-        const bRes = await fetch(`/api/bids/projects/${projectId}/bids`);
+        const bRes = await fetch(apiUrl(`/api/bids/projects/${projectId}/bids`));
         const bData = await bRes.json();
         if (bData.success && Array.isArray(bData.bids)) {
           loadedBids = bData.bids;
         } else {
-          const altRes = await fetch(`/api/projects/${projectId}/bids`);
+          const altRes = await fetch(apiUrl(`/api/projects/${projectId}/bids`));
           const altData = await altRes.json();
           if (altData.success && Array.isArray(altData.bids)) {
             loadedBids = altData.bids;
@@ -143,7 +144,7 @@ export default function ProjectDetail({
     setSubmittingBid(true);
 
     try {
-      const res = await fetch(`/api/bids/projects/${projectId}/bids`, {
+      const res = await fetch(apiUrl(`/api/bids/projects/${projectId}/bids`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +185,7 @@ export default function ProjectDetail({
     }
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/hire/${bidId}`, {
+      const res = await fetch(apiUrl(`/api/projects/${projectId}/hire/${bidId}`), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -217,7 +218,7 @@ export default function ProjectDetail({
     setError('');
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/submit-work`, {
+      const res = await fetch(apiUrl(`/api/projects/${projectId}/submit-work`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -250,7 +251,7 @@ export default function ProjectDetail({
   const handleApproveWork = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/approve`, {
+      const res = await fetch(apiUrl(`/api/projects/${projectId}/approve`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

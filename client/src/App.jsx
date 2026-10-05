@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from './config/api';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import ProjectCard from './components/ProjectCard';
@@ -65,7 +66,7 @@ export default function App() {
       if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus);
       if (sortBy) params.append('sort', sortBy);
 
-      const res = await fetch(`/api/projects?${params.toString()}`);
+      const res = await fetch(apiUrl(`/api/projects?${params.toString()}`));
       const data = await res.json();
       if (data.success) {
         setProjects(data.projects || []);

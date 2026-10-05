@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
-        const res = await fetch('/api/auth/me', {
+        const res = await fetch(apiUrl('/api/auth/me'), {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(apiUrl('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async ({ name, email, password, role }) => {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch(apiUrl('/api/auth/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role }),
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     if (!token) throw new Error('Not authenticated');
-    const res = await fetch('/api/auth/profile', {
+    const res = await fetch(apiUrl('/api/auth/profile'), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

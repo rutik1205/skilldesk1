@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 import {
   Users,
   Search,
@@ -31,7 +32,7 @@ export default function FreelancersDirectory({ onOpenAuth }) {
 
       if (params.toString()) url += `?${params.toString()}`;
 
-      const res = await fetch(url);
+      const res = await fetch(apiUrl(url));
       const data = await res.json();
       if (data.success) {
         setFreelancers(data.freelancers || []);

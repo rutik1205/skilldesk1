@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 import {
   Layers,
   Briefcase,
@@ -35,7 +36,7 @@ export default function Dashboard({
     try {
       // 1. Fetch Client Projects if client
       if (isClient) {
-        const cpRes = await fetch('/api/projects/my/client', {
+        const cpRes = await fetch(apiUrl('/api/projects/my/client'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const cpData = await cpRes.json();
@@ -43,14 +44,14 @@ export default function Dashboard({
       }
 
       // 2. Fetch Freelancer Awarded Projects
-      const fpRes = await fetch('/api/projects/my/freelancer', {
+      const fpRes = await fetch(apiUrl('/api/projects/my/freelancer'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const fpData = await fpRes.json();
       if (fpData.success) setFreelancerProjects(fpData.projects || []);
 
       // 3. Fetch Freelancer Bids
-      const bRes = await fetch('/api/bids/my', {
+      const bRes = await fetch(apiUrl('/api/bids/my'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const bData = await bRes.json();

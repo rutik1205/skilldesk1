@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { apiUrl, getSocketUrl } from '../config/api';
 import {
   MessageSquare,
   Send,
@@ -33,7 +34,7 @@ export default function ProjectChat({ projectId, projectTitle, projectClient, on
   // Fetch messages from REST API
   const fetchMessages = async () => {
     try {
-      const res = await fetch(`/api/messages/project/${projectId}`);
+      const res = await fetch(apiUrl(`/api/messages/project/${projectId}`));
       const data = await res.json();
       if (data.success && Array.isArray(data.messages)) {
         setMessages(data.messages);
@@ -49,7 +50,7 @@ export default function ProjectChat({ projectId, projectTitle, projectClient, on
   useEffect(() => {
     fetchMessages();
 
-    const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin;
+    const socketUrl = getSocketUrl();
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
     });
@@ -92,7 +93,7 @@ export default function ProjectChat({ projectId, projectTitle, projectClient, on
     setError('');
 
     try {
-      const res = await fetch(`/api/messages/project/${projectId}`, {
+      const res = await fetch(apiUrl(`/api/messages/project/${projectId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
