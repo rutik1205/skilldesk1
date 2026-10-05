@@ -113,28 +113,31 @@ app.get('/api/health', (req, res) => {
 // Diagnostic DB reconnect endpoint
 app.get('/api/db-reconnect', async (req, res) => {
   const mongoose = require('mongoose');
-  const uri = process.env.MONGODB_URI || process.env.ATLAS_MONGODB_URI;
-  if (!uri) {
-    return res.status(500).json({ success: false, error: 'No MONGODB_URI or ATLAS_MONGODB_URI found in process.env' });
-  }
-
   try {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
-    const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
-    res.json({
-      success: true,
-      message: 'Connected successfully to MongoDB',
-      host: conn.connection.host,
-      name: conn.connection.name
-    });
+    const conn = await connectDB();
+    if (conn && mongoose.connection.readyState === 1) {
+      res.json({
+        success: true,
+        message: 'Connected successfully to MongoDB',
+        host: mongoose.connection.host,
+        name: mongoose.connection.name,
+        readyState: mongoose.connection.readyState
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to establish connection to any MongoDB host',
+        readyState: mongoose.connection.readyState
+      });
+    }
   } catch (err) {
     res.status(500).json({
       success: false,
       errorName: err.name,
       errorMessage: err.message,
-      maskedUri: uri.replace(/:([^:@]+)@/, ':****@')
     });
   }
 });

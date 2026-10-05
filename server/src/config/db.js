@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   const primaryUri = process.env.MONGODB_URI || process.env.ATLAS_MONGODB_URI || 'mongodb://127.0.0.1:27017/skilldesk';
+  const fallbackAtlasUri = 'mongodb+srv://rtikagayakavada4_db_user:5p4djjR5tw60Hvnz@skilldesk.a6zpfns.mongodb.net/skilldesk?retryWrites=true&w=majority&appName=SkillDesk';
   const fallbackUri = 'mongodb://127.0.0.1:27017/skilldesk';
 
   try {
@@ -11,19 +12,30 @@ const connectDB = async () => {
     console.log(` Attempting to connect to MongoDB: ${maskedUri}`);
 
     const conn = await mongoose.connect(primaryUri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 8000,
     });
     console.log(` MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
+    return conn;
   } catch (error) {
-    console.warn(` Primary MongoDB connection failed (${error.message}). Trying fallback local connection...`);
+    console.warn(` Primary MongoDB connection failed (${error.message}). Trying verified Atlas fallback...`);
     try {
-      const fallbackConn = await mongoose.connect(fallbackUri, {
-        serverSelectionTimeoutMS: 5000,
+      const atlasConn = await mongoose.connect(fallbackAtlasUri, {
+        serverSelectionTimeoutMS: 8000,
       });
-      console.log(` Connected to fallback Local MongoDB: ${fallbackConn.connection.host}/${fallbackConn.connection.name}`);
-    } catch (fallbackError) {
-      console.error(` All MongoDB connections failed: ${fallbackError.message}`);
-      console.warn(` Server will continue running to handle health checks and retry DB operations.`);
+      console.log(` Connected to verified MongoDB Atlas: ${atlasConn.connection.host}/${atlasConn.connection.name}`);
+      return atlasConn;
+    } catch (atlasError) {
+      console.warn(` Verified Atlas fallback failed (${atlasError.message}). Trying local MongoDB...`);
+      try {
+        const localConn = await mongoose.connect(fallbackUri, {
+          serverSelectionTimeoutMS: 4000,
+        });
+        console.log(` Connected to fallback Local MongoDB: ${localConn.connection.host}/${localConn.connection.name}`);
+        return localConn;
+      } catch (localError) {
+        console.error(` All MongoDB connections failed: ${localError.message}`);
+        console.warn(` Server will continue running to handle health checks and retry DB operations.`);
+      }
     }
   }
 };
